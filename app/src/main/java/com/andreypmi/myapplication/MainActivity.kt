@@ -5,16 +5,115 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import com.andreypmi.myapplication.databinding.ActivityMainBinding
+import com.andreypmi.myapplication.domain.ContactAdapter
+import com.andreypmi.myapplication.domain.entity.ContactEntity
+import com.andreypmi.myapplication.presentation.ContactDialogFragment
+import com.andreypmi.myapplication.presentation.ItemMoveCallback
+import com.andreypmi.myapplication.presentation.viewmodel.ContactUiState
+import com.andreypmi.myapplication.presentation.viewmodel.ContactViewModel
+import com.andreypmi.myapplication.presentation.viewmodel.ContactViewModelFactory
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var viewModel: ContactViewModel
+    private lateinit var contactAdapter: ContactAdapter
+    private lateinit var itemTouchHelper: androidx.recyclerview.widget.ItemTouchHelper
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
+        binding.toolbar.setNavigationIcon(R.drawable.ic_close)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        viewModel = ViewModelProvider(this, ContactViewModelFactory())[ContactViewModel::class.java]
+        setupRecyclerView()
+        setupFab()
+        setupSelectionMode()
+        observeUiState()
+        binding.toolbar.setNavigationOnClickListener {
+            viewModel.toggleSelectionMode()
+        }
+    }
+
+
+    private fun setupRecyclerView() {
+        contactAdapter = ContactAdapter(
+            onItemClick = { contact -> onContactClick(contact) },
+            isContactSelected = { contact -> viewModel.isContactSelected(contact) }
+        )
+
+        binding.contactsRecyclerView.apply {
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@MainActivity)
+            adapter = contactAdapter
+        }
+
+        val callback: androidx.recyclerview.widget.ItemTouchHelper.Callback =
+            ItemMoveCallback(contactAdapter) { from, to -> viewModel.moveContact(from, to) }
+        itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(callback)
+        itemTouchHelper.attachToRecyclerView(binding.contactsRecyclerView)
+    }
+
+    private fun setupFab() {
+        binding.addContactFab.setOnClickListener {
+            onAddContactClick()
+        }
+    }
+
+    private fun setupSelectionMode() {
+        binding.cancelSelectionButton.setOnClickListener {
+            viewModel.exitSelectionMode()
+        }
+        binding.deleteSelectionButton.setOnClickListener {
+            viewModel.deleteSelectedContacts()
+        }
+    }
+
+    private fun observeUiState() {
+        lifecycleScope.launch {
+            viewModel.uiState.collect { uiState ->
+                updateUi(uiState)
+            }
+        }
+    }
+
+    private fun updateUi(uiState: ContactUiState) {
+        contactAdapter.submitList(uiState.contacts)
+        contactAdapter.isSelectionMode = uiState.isSelectionMode
+        binding.selectionButtonsLayout.isVisible = uiState.isSelectionMode
+        binding.addContactFab.isVisible = !uiState.isSelectionMode
+        binding.toolbar.setNavigationIcon(if (uiState.isSelectionMode) R.drawable.ic_add else R.drawable.ic_close)
+        binding.contactsRecyclerView.adapter?.notifyDataSetChanged()
+    }
+
+    private fun onContactClick(contact: ContactEntity) {
+        if (viewModel.uiState.value.isSelectionMode) {
+            viewModel.selectContact(contact)
+        } else {
+            onEditContactClick(contact)
+        }
+    }
+    private fun onAddContactClick() {
+        ContactDialogFragment { contact ->
+            viewModel.addContact(contact)
+        }.show(supportFragmentManager, "AddContactDialog")
+    }
+
+    private fun onEditContactClick(contact: ContactEntity) {
+        ContactDialogFragment(contact) {
+            viewModel.updateContact(it)
+        }.show(supportFragmentManager, "EditContactDialog")
     }
 }
