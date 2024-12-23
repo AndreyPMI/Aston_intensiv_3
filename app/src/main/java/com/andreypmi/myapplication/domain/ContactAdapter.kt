@@ -1,6 +1,5 @@
 package com.andreypmi.myapplication.domain
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +12,6 @@ import com.andreypmi.myapplication.domain.entity.ContactEntity
 
 class ContactAdapter (
     private val onItemClick: (ContactEntity) -> Unit,
-    private val onItemLongClick: (ContactEntity) -> Unit,
     private val isContactSelected: (ContactEntity) -> Boolean
 ) : ListAdapter<ContactEntity, ContactAdapter.ContactViewHolder>(ContactDiffCallback()) {
 
@@ -40,11 +38,6 @@ class ContactAdapter (
 
             itemView.setOnClickListener {
                 onItemClick(contact)
-            }
-
-            itemView.setOnLongClickListener {
-                onItemLongClick(contact)
-                true
             }
         }
     }

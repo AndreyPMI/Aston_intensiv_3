@@ -1,6 +1,5 @@
 package com.andreypmi.myapplication.presentation.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.andreypmi.myapplication.domain.entity.ContactEntity
@@ -8,6 +7,7 @@ import com.andreypmi.myapplication.domain.usecase.AddContactUseCase
 import com.andreypmi.myapplication.domain.usecase.DeleteContactsUseCase
 import com.andreypmi.myapplication.domain.usecase.GetContactsUseCase
 import com.andreypmi.myapplication.domain.usecase.UpdateContactUseCase
+import com.andreypmi.myapplication.domain.usecase.UpdateContactsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -22,6 +22,7 @@ class ContactViewModel(
     private val getContactsUseCase: GetContactsUseCase,
     private val addContactUseCase: AddContactUseCase,
     private val updateContactUseCase: UpdateContactUseCase,
+    private val updatesContactUseCase: UpdateContactsUseCase,
     private val deleteContactsUseCase: DeleteContactsUseCase
 ) : ViewModel() {
 
@@ -85,10 +86,13 @@ class ContactViewModel(
     }
 
     fun moveContact(fromPosition: Int, toPosition: Int) {
-        val list = _uiState.value.contacts.toMutableList()
-        val from = list[fromPosition]
-        list.removeAt(fromPosition)
-        list.add(toPosition, from)
-        _uiState.value = _uiState.value.copy(contacts = list)
+        viewModelScope.launch {
+            val list = _uiState.value.contacts.toMutableList()
+            val from = list[fromPosition]
+            list.removeAt(fromPosition)
+            list.add(toPosition, from)
+            _uiState.value = _uiState.value.copy(contacts = list)
+            updatesContactUseCase.execute(contact = list)
+        }
     }
 }

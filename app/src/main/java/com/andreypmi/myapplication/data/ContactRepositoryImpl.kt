@@ -4,7 +4,7 @@ import com.andreypmi.myapplication.domain.entity.ContactEntity
 import com.andreypmi.myapplication.domain.repository.ContactRepository
 
 class ContactRepositoryImpl : ContactRepository {
-    private val contacts = mutableListOf<ContactEntity>()
+    private var contacts = mutableListOf<ContactEntity>()
     init {
         repeat(100) {
             contacts.add(
@@ -35,5 +35,9 @@ class ContactRepositoryImpl : ContactRepository {
 
     override suspend fun deleteContacts(contactsToDelete: List<ContactEntity>) {
         contacts.removeAll(contactsToDelete)
+    }
+
+    override suspend fun updateContacts(contacts: List<ContactEntity>) {
+        this.contacts = contacts.toMutableList()
     }
 }

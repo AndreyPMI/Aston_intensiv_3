@@ -1,7 +1,6 @@
 package com.andreypmi.myapplication
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -10,38 +9,14 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.andreypmi.myapplication.databinding.ActivityMainBinding
-import com.andreypmi.myapplication.databinding.ItemContactBinding
 import com.andreypmi.myapplication.domain.ContactAdapter
 import com.andreypmi.myapplication.domain.entity.ContactEntity
+import com.andreypmi.myapplication.presentation.ContactDialogFragment
 import com.andreypmi.myapplication.presentation.ItemMoveCallback
 import com.andreypmi.myapplication.presentation.viewmodel.ContactUiState
 import com.andreypmi.myapplication.presentation.viewmodel.ContactViewModel
 import com.andreypmi.myapplication.presentation.viewmodel.ContactViewModelFactory
 import kotlinx.coroutines.launch
-
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        bindingMain = ActivityMainBinding.inflate(layoutInflater)
-//        setContentView(bindingMain.root)
-//        setSupportActionBar(bindingMain.toolbar)
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-//            insets
-//        }
-//        viewModel = ViewModelProvider(this, ContactViewModelFactory())[ContactViewModel::class.java]
-//        setupRecyclerView()
-//        setupFab()
-//        setupSelectionMode()
-//        observeUiState()
-//        bindingMain.toolbar.setNavigationIcon(R.drawable.ic_close)
-//
-//
-//        bindingMain.toolbar.setNavigationOnClickListener {
-//            viewModel.toggleSelectionMode()
-//        }
-//    }
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -55,10 +30,14 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-
+        enableEdgeToEdge()
         binding.toolbar.setNavigationIcon(R.drawable.ic_close)
 
-
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
         viewModel = ViewModelProvider(this, ContactViewModelFactory())[ContactViewModel::class.java]
         setupRecyclerView()
         setupFab()
@@ -71,10 +50,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun setupRecyclerView() {
-        Log.d("AAAEW","+++")
         contactAdapter = ContactAdapter(
             onItemClick = { contact -> onContactClick(contact) },
-            onItemLongClick = { contact -> onContactLongClick(contact) },
             isContactSelected = { contact -> viewModel.isContactSelected(contact) }
         )
 
@@ -91,7 +68,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFab() {
         binding.addContactFab.setOnClickListener {
-            //  TODO: Open Add contact dialog/Activity
             onAddContactClick()
         }
     }
@@ -123,24 +99,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onContactClick(contact: ContactEntity) {
-        if(viewModel.uiState.value.isSelectionMode){
+        if (viewModel.uiState.value.isSelectionMode) {
             viewModel.selectContact(contact)
-        }else {
+        } else {
             onEditContactClick(contact)
         }
     }
-
-    private fun onContactLongClick(contact: ContactEntity) {
-        if(!viewModel.uiState.value.isSelectionMode){
-          //  viewModel.toggleSelectionMode()
-                //viewModel.selectContact(contact)
-        }
-    }
     private fun onAddContactClick() {
-        // TODO: Implement navigation to add contact activity/fragment
+        ContactDialogFragment { contact ->
+            viewModel.addContact(contact)
+        }.show(supportFragmentManager, "AddContactDialog")
     }
 
     private fun onEditContactClick(contact: ContactEntity) {
-        // TODO: Implement navigation to edit contact activity/fragment
+        ContactDialogFragment(contact) {
+            viewModel.updateContact(it)
+        }.show(supportFragmentManager, "EditContactDialog")
     }
-    }
+}
